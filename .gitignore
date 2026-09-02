@@ -1,0 +1,4 @@
+#Custom Directories
+
+.venv/
+__pycache__/
