@@ -5,3 +5,5 @@ __pycache__/
 
 #Custom file types
 WaterReminder.vbs
+chumma.py
+yolov8m.pt
