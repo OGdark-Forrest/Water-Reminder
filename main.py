@@ -42,10 +42,12 @@ class Popup(ctk.CTk):
         windowWidth = 2496
         windowHeight = 1664
         winX = windowWidth - 2*self.WIDTH + 35
-        winY = windowHeight - 2*self.HEIGHT - 175
+        winY = windowHeight - 2*self.HEIGHT - 150
         self.geometry(f"{self.WIDTH}x{self.HEIGHT}+{winX}+{winY}")
 
         self.grid_columnconfigure(0, weight=1)
+
+        self.overrideredirect(True)
 
         self.snoozeTime = 5
         self.isSetting = False
@@ -68,7 +70,7 @@ class Popup(ctk.CTk):
         frame.grid(row=0, column=0, sticky="nsew")
 
     def createContentFrame(self):
-        self.contentFrame = ctk.CTkFrame(self)
+        self.contentFrame = ctk.CTkFrame(self, fg_color="black")
         self.contentFrame.grid_columnconfigure(0, weight=1)
         self.contentFrame.grid_rowconfigure((0, 1), weight=1)
 
@@ -120,13 +122,13 @@ class Popup(ctk.CTk):
         time.sleep(20 * 60)
 
     def createSettingFrame(self):
-        self.settingFrame = ctk.CTkFrame(self)
+        self.settingFrame = ctk.CTkFrame(self, fg_color="black")
         self.settingFrame.grid_columnconfigure(0, weight=1)
         self.settingFrame.grid_rowconfigure(0, weight=1)
 
         SliderFrame(
             self.settingFrame, 
-            "Set your snooze time:", 
+            "Set your snooze time: (in minutes)", 
             (2, 4, 6, 8, 10), 
             (10, 1, 11), 
             self.updateSnoozeTime, 
