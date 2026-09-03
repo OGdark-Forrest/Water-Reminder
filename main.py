@@ -1,5 +1,52 @@
+from ultralytics import YOLO
+import cv2
 import customtkinter as ctk
 import time
+from win11toast import toast
+
+model = YOLO("yolov8m.pt")
+
+DRINKWARE = {"cup", "bottle", "wine glass"}
+
+def startVerification():
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Nothing to see")
+            break
+
+        results = model(frame, conf=0.2, iou=0.45, verbose=False)[0]
+
+        drinkware_present = False
+
+        for box in results.boxes:
+            cls_id = int(box.cls[0])
+            label = results.names[cls_id]
+            conf = float(box.conf[0])
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+            if label in DRINKWARE:
+                drinkware_present = True
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.putText(frame, f"{label} {conf:.2f}", (x1, y1 - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+        status = "DRINKWARE DETECTED" if drinkware_present else "no drinkware"
+        if status == "DRINKWARE DETECTED":
+            cap.release()
+            cv2.destroyAllWindows()
+            return "verified"
+        color = (0, 255, 0) if drinkware_present else (0, 0, 255)
+        cv2.putText(frame, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+
+        cv2.imshow("Drinkware Detection", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return "cancelled"
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 class Label(ctk.CTkLabel):
     def __init__(self, master, text, font=None):
@@ -51,6 +98,7 @@ class Popup(ctk.CTk):
 
         self.snoozeTime = 5
         self.isSetting = False
+        self.snoozeCount = 0
 
         self.createWidgets()
 
@@ -87,12 +135,15 @@ class Popup(ctk.CTk):
             fg_color="green",
             command=self.drankWater
         ).grid(row=0, column=0, sticky="nsew")
-        ctk.CTkButton(
+        snoozeButton = ctk.CTkButton(
             buttonFrame,
             text=f"Snooze ({self.getSnoozeTime()} mins)",
             fg_color="red",
             command=self.snooze
-        ).grid(row=0, column=1)
+        )
+        snoozeButton.grid(row=0, column=1)
+        if self.snoozeCount > 2:
+            snoozeButton.configure(state="disabled")
 
         buttonFrame.grid(row=1, column=0, sticky="nsew", padx=(5, 5), pady=(5, 5))
 
@@ -114,12 +165,19 @@ class Popup(ctk.CTk):
         return self.snoozeTime
 
     def snooze(self):
+        self.snoozeCount += 1
         self.destroy()
         time.sleep(self.getSnoozeTime() * 60)
 
     def drankWater(self):
-        self.destroy()
-        time.sleep(20 * 60)
+        result = startVerification()
+        if result == "verified":
+            toast("Verified Succesfully")
+            self.snoozeCount = 0
+            self.destroy()
+            time.sleep(20 * 60)
+            return
+        toast("Verification cancelled")
 
     def createSettingFrame(self):
         self.settingFrame = ctk.CTkFrame(self, fg_color="black")
